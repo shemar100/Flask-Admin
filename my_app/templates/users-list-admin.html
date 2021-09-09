@@ -1,0 +1,10 @@
+{% extends 'home.html' %}
+
+{% block container %}
+    <h1>User list</h1>
+    {% for user in users %}
+        <ul>
+            <li> {{ user.id }} - {{ user.username }} Admin: {{ user.admin }}</li>
+         </ul>
+    {% endfor %}
+{% endblock %}

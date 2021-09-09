@@ -1,0 +1,11 @@
+{% extends 'home.html' %}
+
+{% block container %}
+    <h1> Hey Admin!!</h1>
+    <br/>
+    <h4>
+        <a href="{{ url_for('auth.users_list_admin') }}">List All Users</a>
+        <br/>
+        <a href="{{ url_for('auth.create_user') }}">Create User</a>
+    </h4>
+{% endblock %}
