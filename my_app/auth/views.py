@@ -4,17 +4,14 @@ from my_app import app, db, login_manager
 from my_app.auth.models import User, RegistrationForm, LoginForm
 from functools import wraps
 from my_app.auth.models import AdminUserCreateForm, AdminUserUpdateForm
+from flask_admin import BaseView, expose, AdminIndexView
+from werkzeug.security import generate_password_hash, check_password_hash
+check_password_hash
+from wtforms import PasswordField
+from flask_admin.contrib.sqla import ModelView
+
 
 auth = Blueprint('auth', __name__)
-
-@login_manager.user_loader
-def load_user(id):
-    return User.query.get(int(id))
-
-@auth.before_request
-def get_current_user():
-    g.user = current_user
-
 
 def admin_login_required(func):
     @wraps(func)
@@ -23,6 +20,15 @@ def admin_login_required(func):
             return abort(403)
         return(func(*args, **kwargs))
     return decorated_view
+
+
+@login_manager.user_loader
+def load_user(id):
+    return User.query.get(int(id))
+
+@auth.before_request
+def get_current_user():
+    g.user = current_user
 
 
 @auth.route('/')
@@ -168,4 +174,44 @@ def user_delete_admin(id):
     return redirect(url_for('auth.users_list_admin'))
 
 
+class MyAdminIndexView(AdminIndexView):
+    def is_accessible(self):
+        return current_user.is_authenticated and current_user.is_admin()
 
+
+class HelloView(BaseView):
+    @expose('/')
+    def index(self):
+        return self.render('home.html')
+
+class UserAdminView(ModelView):
+    column_searchable_list = ('username', 'admin')
+    column_sortable_list = ('username', 'admin', )
+    column_exclude_list = ('pwdhash',)
+    column_excluded_columns = ('pwdhash',)
+    form_edit_rules = ('username', 'admin', )
+
+    def is_accessible(self):
+        return current_user.is_authenticated and current_user.is_admin()
+
+    def scaffold_form(self):
+        form_class = super(UserAdminView, self).scaffold_form()
+        form_class.password = PasswordField('Password')
+        return form_class
+
+    def create_model(self, form):
+        model = self.model(
+        form.username.data, 
+        form.password.data,
+        form.admin.data
+    )
+        form.populate_obj(model)
+        self.session.add(model)
+        self._on_model_change(form, model, True)
+        self.session.commit()
+
+
+@app.errorhandler(403)
+def page_not_found(e):
+    flash('Invlaid route', 'warning')
+    return redirect(url_for('auth.home')) 
