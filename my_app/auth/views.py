@@ -2,18 +2,10 @@ from flask import request, render_template, flash, redirect, url_for, g, Bluepri
 from flask_login import current_user, login_user, logout_user, login_required
 from my_app import app, db, login_manager
 from my_app.auth.models import User, RegistrationForm, LoginForm
-from flask_dance.contrib.facebook import make_facebook_blueprint, facebook
-from flask_dance.contrib.google import make_google_blueprint, google
 from functools import wraps
 from my_app.auth.models import AdminUserCreateForm, AdminUserUpdateForm
 
 auth = Blueprint('auth', __name__)
-facebook_blueprint = make_facebook_blueprint(scope='email', redirect_to='auth.facebook_login')
-google_blueprint = make_google_blueprint(scope=[
-"openid",
-"https://www.googleapis.com/auth/userinfo.email",
-"https://www.googleapis.com/auth/userinfo.profile"],
-redirect_to='auth.google_login')
 
 @login_manager.user_loader
 def load_user(id):
@@ -96,36 +88,6 @@ def logout():
     logout_user()
     return redirect(url_for('auth.home'))
 
-
-@auth.route('/facebook-login')
-def facebook_login():
-    if not facebook.authorized:
-        return redirect(url_for('facebook.login'))
-
-    resp = facebook.get("/me?fields=name,email")
-
-    user = User.query.filter_by(username=resp.json()['email']).first()
-    if not user:
-        user = User(resp.json()['email'],'')
-        db.session.add(user)
-        db.session.commit()
-    login_user(user)
-    flash('Logged in as name=%s using Facebook login' % (resp.json()['name']), 'success')
-    return redirect(request.args.get('next', url_for('auth.home')))
-
-@auth.route('/google-login')
-def google_login():
-    if not google.authorized:
-        return redirect(url_for('google.login'))
-    resp = google.get("oauth2/v1/userinfo")
-    user = User.query.filter_by(Username=resp.json["email"]).first()
-    if not user:
-        user = User(resp.json()['email'], '')
-        db.session.add(user)
-        db.session.commit()
-    login_user(user)
-    flash('Logged in as name=%s using Google login' % (resp.json()['name']), 'success')
-    return redirect(request.args.get('next'), url_for('auth.home'))
 
 @auth.route('/admin')
 @login_required
