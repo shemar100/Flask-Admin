@@ -14,6 +14,7 @@ from flask_admin.form import rules
 
 auth = Blueprint('auth', __name__)
 
+#Custom decoorator which checks if user is logged in as admin
 def admin_login_required(func):
     @wraps(func)
     def decorated_view(*args, **kwargs):
@@ -31,12 +32,13 @@ def load_user(id):
 def get_current_user():
     g.user = current_user
 
-
+#home route
 @auth.route('/')
 @auth.route('/home')
 def home():
     return render_template('home.html')
 
+#route handler to register new user
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -62,7 +64,7 @@ def register():
     
     return render_template('register.html', form=form)
 
-
+#route handler to login  user
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -89,19 +91,21 @@ def login():
 
     return render_template('login.html', form=form)
 
+#route hanlder to take care of loggin out session
 @auth.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('auth.home'))
 
-
+#admin view which is now replaced by flask admin
 @auth.route('/admin')
 @login_required
 @admin_login_required
 def admin():
     return render_template('admin-home.html')
 
+#admin route to list users
 @auth.route('/admin/user-lists')
 @login_required
 @admin_login_required
@@ -109,6 +113,7 @@ def users_list_admin():
     users = User.query.all()
     return render_template('users-list-admin.html', users=users)
 
+#route to create admin which is overidded by flask admin
 @auth.route('/admin/create-user', methods=['GET', 'POST'])
 @login_required
 @admin_login_required
@@ -135,6 +140,7 @@ def create_user():
     
     return render_template('user-create-admin.html', form=form)
 
+#route to edit admin which is overidded by flask admin
 @auth.route('/admin/update-user/<id>', methods=['GET', 'POST'])
 @login_required
 @admin_login_required
@@ -163,7 +169,7 @@ def user_update_admin(id):
 
     return render_template('user-update-admin.html', form=form)
 
-
+#route to delete admin which is overidded by flask admin
 @auth.route('/admin/delete-user/<id>')
 @login_required
 @admin_login_required
@@ -185,6 +191,7 @@ class HelloView(BaseView):
     def index(self):
         return self.render('home.html')
 
+#Create user admin modelview
 class UserAdminView(ModelView):
     column_searchable_list = ('username', 'admin')
     column_sortable_list = ('username', 'admin', )
