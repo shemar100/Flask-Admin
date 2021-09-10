@@ -19,7 +19,7 @@ class User(db.Model):
         self.pwdhash = generate_password_hash(password)
         self.admin = admin
         self.notes = notes
-        self.roles = roles
+        self.roles = self.admin and roles or ''
         
     #get method which returns True/False for admin
     def is_admin(self):
