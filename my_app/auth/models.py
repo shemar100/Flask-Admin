@@ -11,13 +11,15 @@ class User(db.Model):
     pwdhash = db.Column(db.String())
     admin = db.Column(db.Boolean())
     notes = db.Column(db.UnicodeText)
+    roles = db.Column(db.String(4))
 
     # Intialization of data model fields
-    def __init__(self, username, password, admin=False, notes=''):
+    def __init__(self, username, password, admin=False, notes='', roles='R'):
         self.username = username
         self.pwdhash = generate_password_hash(password)
         self.admin = admin
         self.notes = notes
+        self.roles = roles
         
     #get method which returns True/False for admin
     def is_admin(self):
