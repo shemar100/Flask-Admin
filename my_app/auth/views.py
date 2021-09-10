@@ -10,7 +10,7 @@ check_password_hash
 from wtforms import PasswordField
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.form import rules
-
+from flask_admin.actions import ActionsMixin
 
 auth = Blueprint('auth', __name__)
 
@@ -192,7 +192,7 @@ class HelloView(BaseView):
         return self.render('home.html')
 
 #Create user admin modelview
-class UserAdminView(ModelView):
+class UserAdminView(ModelView, ActionsMixin):
     column_searchable_list = ('username', 'admin')
     column_sortable_list = ('username', 'admin', )
     column_exclude_list = ('pwdhash',)
@@ -206,13 +206,15 @@ class UserAdminView(ModelView):
     form_edit_rules = (
         'username', 
         'admin',
+        'roles',
         rules.Header('Reset Password'),
         'new_password', 
         'confirm'
         )
     form_create_rules = (
         'username', 
-        'admin', 
+        'admin',
+        'roles', 
         'notes', 
         'password'
         )
@@ -229,6 +231,9 @@ class UserAdminView(ModelView):
         return form_class
 
     def create_model(self, form):
+        if 'C' not in current_user.roles:
+            flash('You are allowed to edit user.', 'warning')
+            return
         model = self.model(
         form.username.data, 
         form.password.data,
@@ -240,6 +245,9 @@ class UserAdminView(ModelView):
         self.session.commit()
     
     def update_model(self, form, model):
+        if 'U' not in current_user.roles:
+            flash('You are allowed to create user.', 'warning')
+
         form.populate_obj(model)
         if form.new_password.data != form.confirm.data:
             flash('Passwords Must Match')
