@@ -99,7 +99,7 @@ def logout():
     return redirect(url_for('auth.home'))
 
 #admin view which is now replaced by flask admin
-@auth.route('/admin')
+@auth.route('/admin/user')
 @login_required
 @admin_login_required
 def admin():
@@ -232,7 +232,7 @@ class UserAdminView(ModelView, ActionsMixin):
 
     def create_model(self, form):
         if 'C' not in current_user.roles:
-            flash('You are allowed to edit user.', 'warning')
+            flash('You not are allowed to edit user.', 'warning')
             return
         model = self.model(
         form.username.data, 
@@ -256,7 +256,20 @@ class UserAdminView(ModelView, ActionsMixin):
         self.session.add(model)
         self._on_model_change(form, model, False)
         self.session.commit()
-        
+    
+    def delete_model(self, model):
+        if 'D' not in current_user.roles:
+            flash('You are not allowed to delete users.','warning')
+            return
+        super(UserAdminView, self).delete_model(model)
+
+    # def is_action_allowed(self, name):
+    #     if name == 'delete' and 'D' not in current_user.roles:
+    #         flash('You are not allowed to delete users.','warning')
+    #         return False
+    #     return True
+    
+
 @app.errorhandler(403)
 def page_not_found(e):
     flash('Invlaid route', 'warning')
