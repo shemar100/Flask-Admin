@@ -3,12 +3,13 @@ from flask_login import current_user, login_user, logout_user, login_required
 from my_app import app, db, login_manager
 from my_app.auth.models import User, RegistrationForm, LoginForm
 from functools import wraps
-from my_app.auth.models import AdminUserCreateForm, AdminUserUpdateForm
+from my_app.auth.models import AdminUserCreateForm, AdminUserUpdateForm, CKTextAreaField
 from flask_admin import BaseView, expose, AdminIndexView
 from werkzeug.security import generate_password_hash, check_password_hash
 check_password_hash
 from wtforms import PasswordField
 from flask_admin.contrib.sqla import ModelView
+from flask_admin.form import rules
 
 
 auth = Blueprint('auth', __name__)
@@ -189,7 +190,26 @@ class UserAdminView(ModelView):
     column_sortable_list = ('username', 'admin', )
     column_exclude_list = ('pwdhash',)
     column_excluded_columns = ('pwdhash',)
-    form_edit_rules = ('username', 'admin', )
+
+    form_overrides = dict(notes=CKTextAreaField)
+
+    create_template = 'edit.html'
+    edit_template = 'edit.html'
+
+    form_edit_rules = (
+        'username', 
+        'admin',
+        rules.Header('Reset Password'),
+        'new_password', 
+        'confirm'
+        )
+    form_create_rules = (
+        'username', 
+        'admin', 
+        'notes', 
+        'password'
+        )
+
 
     def is_accessible(self):
         return current_user.is_authenticated and current_user.is_admin()
@@ -197,6 +217,8 @@ class UserAdminView(ModelView):
     def scaffold_form(self):
         form_class = super(UserAdminView, self).scaffold_form()
         form_class.password = PasswordField('Password')
+        form_class.new_password = PasswordField('New Password')
+        form_class.confirm = PasswordField('Confirm New Password')
         return form_class
 
     def create_model(self, form):
@@ -209,8 +231,17 @@ class UserAdminView(ModelView):
         self.session.add(model)
         self._on_model_change(form, model, True)
         self.session.commit()
-
-
+    
+    def update_model(self, form, model):
+        form.populate_obj(model)
+        if form.new_password.data != form.confirm.data:
+            flash('Passwords Must Match')
+            return
+        model.pwdhash = generate_password_hash(form.new_password.data)
+        self.session.add(model)
+        self._on_model_change(form, model, False)
+        self.session.commit()
+        
 @app.errorhandler(403)
 def page_not_found(e):
     flash('Invlaid route', 'warning')
